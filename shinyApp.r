@@ -8,6 +8,7 @@ library(stats)
 library(stringr)
 library(ggplot2)
 library(dplyr)
+library(plotly)
 
 survey = read.xlsx("surveydataece.xlsx",1)
 survey<-survey[1:36,]
@@ -85,9 +86,9 @@ ui<- dashboardPage(
         )       
       ),
     column(9,
-       wellPanel(
-         plotOutput("distPlot1")
-       ),
+       
+        plotlyOutput("distPlot1"),
+       
        wellPanel(
          plotOutput("distPlot2")
        ),
@@ -120,12 +121,21 @@ server = function(input, output) {
   tmp <-reactive({as.data.frame(logDate = logs$Time[logs$User == intput$user & logs$Type== "Cheated"])%>%group_by(logDate) %>% summarise(no_logs = length(logDate)) })
   #tmp <- tmp %>%group_by(logDate) %>% summarise(no_logs = length(logDate))
   #output$distPlot1 <- renderPlot(autoplot(ts(tmp)) + labs(title="Cheated over time") )
-  write(data.frame(logDate = logs$Time[logs$User == "William Beauregard" & logs$Type== "Cheated"]), "dump.txt")
-  output$distPlot1 <- reactivePlot(function(){
-    p <- autoplot(ts(tmp)) + labs(title="Cheated over time")
-    print(p)
-  })
+
+  #output$distPlot1 <- reactivePlot(function(){
+   # autoplot(ts(tmp)) + labs(title="Cheated over time")
+  #})
   
+  output$distplot1 <- renderPlotly({ 
+      df = logs()[logs()$User == input$user,] 
+      df = df[,c("User", 'Time')]
+      df$Day = as.POSIXct(df$Time,format="%d/%m/%Y") 
+      df = aggregate(df$User, by= list(df$Day), length) 
+      df = rename(df, c('Group.1'='Day', "x"="nbCig")) 
+      
+      dodge <- position_dodge(width = 0.9) 
+      p = ggplot(df, aes(x=Day, y=nbCig)) 
+      p + ggtitle("Cigarettes consumption over all period") + geom_point() + geom_line(color='steelblue') + scale_x_discrete(limits=df$Day) + stat_smooth() }) 
   
   
 }
