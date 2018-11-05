@@ -6,10 +6,13 @@ library(fastDummies)
 library(readxl)
 library(stats)
 library(stringr)
+library(ggplot2)
+library(dplyr)
 
 survey = read.xlsx("surveydataece.xlsx",1)
 survey<-survey[1:36,]
 logs = read.csv2("logs.csv")
+logs$Time<-format(strptime(as.character(logs$Time), "%d/%m/%Y"), "%Y-%m-%d") #dealing with time format
 
 # Remove accents
 Unaccent <- function(text) {
@@ -113,6 +116,15 @@ server = function(input, output) {
   output$userGender<-reactive(as.character(survey$Gender[survey$Name == input$user]))
   output$userAge<-reactive(as.character(survey$Age[survey$Name == input$user]))
   output$BMI<-reactive(as.character(round(survey$weigh[survey$Name == input$user]/((survey$height[survey$Name == input$user]/100)**2))) )
+  
+  tmp <-reactive({as.data.frame(logDate = logs$Time[logs$User == intput$user & logs$Type== "Cheated"])%>%group_by(logDate) %>% summarise(no_logs = length(logDate)) })
+  #tmp <- tmp %>%group_by(logDate) %>% summarise(no_logs = length(logDate))
+  #output$distPlot1 <- renderPlot(autoplot(ts(tmp)) + labs(title="Cheated over time") )
+  write(data.frame(logDate = logs$Time[logs$User == "William Beauregard" & logs$Type== "Cheated"]), "dump.txt")
+  output$distPlot1 <- reactivePlot(function(){
+    p <- autoplot(ts(tmp)) + labs(title="Cheated over time")
+    print(p)
+  })
   
   
   
