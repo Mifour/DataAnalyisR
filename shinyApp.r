@@ -65,24 +65,24 @@ ui<- dashboardPage(
     fluidRow(
       column(3, align="center",
         selectInput("user", "User", choices = sort(survey$Name), selected = sort(survey$Name) ),
-        box(h3(verbatimTextOutput("user")),br(),
-            verbatimTextOutput("userGender"), ",",
+        h3(verbatimTextOutput("user")),br(),
+            verbatimTextOutput("userGender"),
             verbatimTextOutput("userAge"), " years old",br(),
-            "BMI: ", verbatimTextOutput("BMI") ),
-        box(
+            "BMI: ", verbatimTextOutput("BMI"), br() ,
+        
           h3("Savings"), br(),
           "Cigs saved: ", 528, br(),
-          "Money saved: ", 91
-          ),
-        box(
+          "Money saved: ", 91,
+          br(),
+        
           h3("Current Activities"), br(),
           "Active: ", 1, br(),
-          "Engaged: ", 1
-          ),
-        box(
+          "Engaged: ", 1,
+          br(),
+       
           h3("Feature usage"), br(),
           plotOutput("distPlot0")
-        )
+        
         )       
       ),
     column(9,
@@ -135,7 +135,8 @@ server = function(input, output) {
       
       dodge <- position_dodge(width = 0.9) 
       p = ggplot(df, aes(x=Day, y=nbCig)) 
-      p + ggtitle("Cigarettes consumption over all period") + geom_point() + geom_line(color='steelblue') + scale_x_discrete(limits=df$Day) + stat_smooth() }) 
+      p + ggtitle("Cigarettes consumption over all period") + geom_point() + geom_line(color='steelblue') + scale_x_discrete(limits=df$Day) + stat_smooth() 
+  }) 
   
   
 }
