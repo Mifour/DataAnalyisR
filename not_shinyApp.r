@@ -14,8 +14,7 @@ library(stringr)
 library(sqldf)
 
 
-survey = read.xlsx("surveydataece.xlsx",sheetIndex=1, rows=c(1:36), skipEmptyRows = TRUE)
-survey<-survey[1:36,]
+survey = read.xlsx("surveydataece.xlsx", sheetIndex=1)
 logs = read.csv2("logs.csv")
 logs$Time<-format(strptime(as.character(logs$Time), "%d/%m/%Y"), "%Y-%m-%d") #dealing with time format
 
@@ -68,7 +67,7 @@ processLogs <- function(logs){
   return(logs)
 }
 
-processSurvey <- function(survey){
+processSurveyUsernames <- function(survey){
   survey = str_replace_all(survey, "é", "e")
   survey = str_replace_all(survey, "É", "E")
   survey = str_replace_all(survey, "ë", "e")
@@ -80,7 +79,19 @@ processSurvey <- function(survey){
   return(survey)
 }
 
+processSurvey <- function(survey){
+  survey$Name <-processSurveyUsernames(unique(survey$Name))
+  
+  # We add the age category indicator : Youngs = 1, mids = 2, olds = 3
+  survey = survey %>%
+    mutate(Age.category = case_when(Age < 30 ~ 1,
+                               Age >= 30 & Age < 50 ~ 2,
+                               Age >= 50 ~ 3))
+  
+  return(survey)
+}
 
-# survey$Name <-processSurvey(unique(survey$Name))
-logs <-processLogs(logs)
+
+survey<-processSurvey(survey)
+logs<-processLogs(logs)
 user<-"William Beauregard"
