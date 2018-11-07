@@ -71,8 +71,8 @@ ui<- dashboardPage(
             "BMI: ", verbatimTextOutput("BMI"), br() ,
         
           h3("Savings"), br(),
-          "Cigs saved: ", 528, br(),
-          "Money saved: ", 91,
+          "Cigs saved: ", textOutput("saved"), br(),
+          "Money saved (L£): ", textOutput("moneySaved"),
           br(),
         
           h3("Current Activities"), br(),
@@ -89,12 +89,12 @@ ui<- dashboardPage(
        
         plotlyOutput("distPlot1"),
        
-       wellPanel(
-         plotOutput("distPlot2")
-       ),
-       wellPanel(
+       
+         plotOutput("distPlot2"),
+       
+       
          plotOutput("distPlot3")
-       )
+       
     ),
     
     tags$footer(tags$em("Created by Thomas Dufour & Pierre Moreau"))
@@ -126,10 +126,18 @@ server = function(input, output) {
    # autoplot(ts(tmp)) + labs(title="Cheated over time")
   #})
   
+  #habits <-reactive(as.character(length(logs$Time[logs$User == intput$user & logs$Type== "Behaviour"])/7 )) 
+  #smoked <- reactive(as.data.frame(logDate = logs$Time[(logs$User == intput$user & logs$Type== "On time") |(logs$User == intput$user & logs$Type== "Cheated" )]) )
+  output$saved <- renderText({
+    habits <-length(logs$Time[logs$User == intput$user & logs$Type== "Behaviour"])/7
+    smoked <-data.frame(logDate = logs$Time[(logs$User == intput$user & logs$Type== "On time") |(logs$User == intput$user & logs$Type== "Cheated" )] )
+    saved <-habits*as.numeric(max(as.Date.factor(smoked$logDate))-min(as.Date.factor(smoked$logDate)))-length(smoked) 
+  })
+  output$moneySaved <-renderText({ output$saved *3.475/20 }) 
+  
   output$distplot1 <- renderPlotly({ 
       df = logs()[logs()$User == input$user,] 
       df = df[,c("User", 'Time')]
-      df$Day = as.POSIXct(df$Time,format="%d/%m/%Y") 
       df = aggregate(df$User, by= list(df$Day), length) 
       df = rename(df, c('Group.1'='Day', "x"="nbCig")) 
       
