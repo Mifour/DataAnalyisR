@@ -11,7 +11,7 @@ library(ggplot2)
 library(dplyr)
 library(plotly)
 library(stringr)
-library(sqldf)
+library(sqldf)        # Using SQLite in R to manipulate dataframes :D
 
 
 survey = read.xlsx("surveydataece.xlsx", sheetIndex=1)
@@ -94,4 +94,4 @@ processSurvey <- function(survey){
 
 survey<-processSurvey(survey)
 logs<-processLogs(logs)
-user<-"William Beauregard"
+user<-"Audrey Auberjonois"
