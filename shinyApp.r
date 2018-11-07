@@ -118,7 +118,7 @@ server = function(input, output) {
   output$userAge<-reactive(as.character(survey$Age[survey$Name == input$user]))
   output$BMI<-reactive(as.character(round(survey$weigh[survey$Name == input$user]/((survey$height[survey$Name == input$user]/100)**2))) )
   
-  tmp <-reactive({as.data.frame(logDate = logs$Time[logs$User == intput$user & logs$Type== "Cheated"])%>%group_by(logDate) %>% summarise(no_logs = length(logDate)) })
+  tmp <-reactive({as.data.frame(logDate = logs$Time[logs$User == input$user & logs$Type== "Cheated"])%>%group_by(logDate) %>% summarise(no_logs = length(logDate)) })
   #tmp <- tmp %>%group_by(logDate) %>% summarise(no_logs = length(logDate))
   #output$distPlot1 <- renderPlot(autoplot(ts(tmp)) + labs(title="Cheated over time") )
 
@@ -126,14 +126,19 @@ server = function(input, output) {
    # autoplot(ts(tmp)) + labs(title="Cheated over time")
   #})
   
-  #habits <-reactive(as.character(length(logs$Time[logs$User == intput$user & logs$Type== "Behaviour"])/7 )) 
-  #smoked <- reactive(as.data.frame(logDate = logs$Time[(logs$User == intput$user & logs$Type== "On time") |(logs$User == intput$user & logs$Type== "Cheated" )]) )
+  #habits <-reactive(as.character(length(logs$Time[logs$User == input$user & logs$Type== "Behaviour"])/7 )) 
+  #smoked <- reactive(as.data.frame(logDate = logs$Time[(logs$User == input$user & logs$Type== "On time") |(logs$User == input$user & logs$Type== "Cheated" )]) )
   output$saved <- renderText({
-    habits <-length(logs$Time[logs$User == intput$user & logs$Type== "Behaviour"])/7
-    smoked <-data.frame(logDate = logs$Time[(logs$User == intput$user & logs$Type== "On time") |(logs$User == intput$user & logs$Type== "Cheated" )] )
+    habits <-length(logs$Time[logs$User == input$user & logs$Type== "Behaviour"])/7
+    smoked <-data.frame(logDate = logs$Time[(logs$User == input$user & logs$Type== "On time") |(logs$User == input$user & logs$Type== "Cheated" )] )
     saved <-habits*as.numeric(max(as.Date.factor(smoked$logDate))-min(as.Date.factor(smoked$logDate)))-length(smoked) 
   })
-  output$moneySaved <-renderText({ output$saved *3.475/20 }) 
+  output$moneySaved <-renderText({ 
+    habits <-length(logs$Time[logs$User == input$user & logs$Type== "Behaviour"])/7
+    smoked <-data.frame(logDate = logs$Time[(logs$User == input$user & logs$Type== "On time") |(logs$User == input$user & logs$Type== "Cheated" )] )
+    saved <-habits*as.numeric(max(as.Date.factor(smoked$logDate))-min(as.Date.factor(smoked$logDate)))-length(smoked)
+    moneySaved <- saved *3.475/20 
+  }) 
   
   output$distplot1 <- renderPlotly({ 
       df = logs()[logs()$User == input$user,] 
