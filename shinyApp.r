@@ -88,13 +88,11 @@ ui<- dashboardPage(
       ),
     column(9,
        
-        plotlyOutput("distPlot1"),
+      plotlyOutput("distPlot1"),
        
+      plotOutput("distPlot2"),
        
-         plotOutput("distPlot2"),
-       
-       
-         plotOutput("distPlot3")
+      plotOutput("distPlot3")
        
       )
     ),    
@@ -144,12 +142,10 @@ server = function(input, output) {
   output$distPlot1 <- renderPlotly({ 
       df = logs[logs$User == input$user,] 
       df = df[,c("User", 'Time')]
-      df = aggregate(df$User, by= list(df$Day), length) 
-      df = rename(df, c('Group.1'='Day', "x"="nbCig")) 
+      df = aggregate(df$User, by= list(df$Time), length)
+      colnames(df) = c("Day", "nbLog")
       
-      dodge <- position_dodge(width = 0.9) 
-      p = ggplot(df, aes(x=Day, y=nbCig)) 
-      p + ggtitle("Cigarettes consumption over all period") + geom_point() + geom_line(color='steelblue') + scale_x_discrete(limits=df$Day) + stat_smooth() 
+      plot_ly(x=df$Day, y=df$nbLog, name="test", type="bar")
   }) 
   
   
