@@ -9,6 +9,7 @@ library(stringr)
 library(ggplot2)
 library(dplyr)
 library(plotly)
+library(stringr)
 
 survey = read.xlsx("surveydataece.xlsx",1)
 survey<-survey[1:36,]
@@ -83,7 +84,7 @@ ui<- dashboardPage(
           h3("Feature usage"), br(),
           plotOutput("distPlot0")
         
-        )       
+               
       ),
     column(9,
        
@@ -95,8 +96,8 @@ ui<- dashboardPage(
        
          plotOutput("distPlot3")
        
-    ),
-    
+      )
+    ),    
     tags$footer(tags$em("Created by Thomas Dufour & Pierre Moreau"))
   )
   
@@ -140,8 +141,8 @@ server = function(input, output) {
     moneySaved <- saved *3.475/20 
   }) 
   
-  output$distplot1 <- renderPlotly({ 
-      df = logs()[logs()$User == input$user,] 
+  output$distPlot1 <- renderPlotly({ 
+      df = logs[logs$User == input$user,] 
       df = df[,c("User", 'Time')]
       df = aggregate(df$User, by= list(df$Day), length) 
       df = rename(df, c('Group.1'='Day', "x"="nbCig")) 
