@@ -10,9 +10,9 @@ library(ggplot2)
 library(dplyr)
 library(plotly)
 library(stringr)
+library(sqldf)        # Using SQLite in R to manipulate dataframes :D
 
-survey = read.xlsx("surveydataece.xlsx",1)
-survey<-survey[1:36,]
+survey = read.xlsx("surveydataece.xlsx", sheetIndex=1)
 logs = read.csv2("logs.csv")
 logs$Time<-format(strptime(as.character(logs$Time), "%d/%m/%Y"), "%Y-%m-%d") #dealing with time format
 
@@ -24,33 +24,78 @@ Unaccent <- function(text) {
   return(text)
 }
 
+
 # Process user names 
+processLogsUsernames <- function(logsUsers){
+  logsUsers = Unaccent(logsUsers)
+  logsUsers = str_replace_all(logsUsers, 'Z', 'e')
+  logsUsers = str_replace(logsUsers, "ftienne", "Etienne")
+  logsUsers = str_replace(logsUsers, "flie", "Elie")
+  logsUsers = str_replace(logsUsers, "In?s", "Ines")
+  logsUsers = str_replace(logsUsers, "fdouard", "Edouard")
+  
+  return(logsUsers)
+}
+
 processLogs <- function(logs){
-  logs = Unaccent(logs)
-  logs = str_replace_all(logs, 'Z', 'e')
-  logs = str_replace(logs, "ftienne", "Etienne")
-  logs = str_replace(logs, "flie", "Elie")
-  logs = str_replace(logs, "In?s", "Ines")
-  logs = str_replace(logs, "fdouard", "Edouard")
+  # Process user names
+  logs$User <-processLogsUsernames(logs$User)
+  
+  # Remove the null columns  (keep only the first 5 columns)
+  logs <- logs[c(1:5)]
+  
+  # Compute Day number = datedif("day", Time, min(Time) of user)
+  # Since I love SQL and I already did the computation in SQL in Tableau Software, I'm using the SQL package
+  logs = sqldf("select l.*, d.FirstDate
+              from logs l
+              left join (
+              -- I compute the minimim date for each user
+              -- and add 1 day such that the first behaviour day will be the -1 day
+                  select User, date(min(Time), '+1 day') as FirstDate from logs group by User
+              )d on l.User = d.User")
+
+  # We compute the day difference between the log input and the first log input
+  logs$Day <- as.numeric(as.Date.factor(logs$Time) - as.Date.factor(logs$FirstDate))
+
+  # We remove the logs where day = -1 (the behaviour week starts always 1 day too early)
+  logs = logs[logs$Day >= 0,]
+
+  # Compute week number = floor(Day#/7)
+  logs$Week <- floor(logs$Day/7)
+  
   return(logs)
 }
 
+processSurveyUsernames <- function(surveyUsers){
+  surveyUsers = str_replace_all(surveyUsers, "é", "e")
+  surveyUsers = str_replace_all(surveyUsers, "É", "E")
+  surveyUsers = str_replace_all(surveyUsers, "ë", "e")
+  surveyUsers = str_replace_all(surveyUsers, "è", "e")
+  surveyUsers = str_replace_all(surveyUsers, "Ã©", "e")
+  surveyUsers = str_replace_all(surveyUsers, "Ã¨", "e")
+  surveyUsers = str_replace_all(surveyUsers, "Ã‰", "E")
+  surveyUsers = str_replace_all(surveyUsers, "Ã«", "e")
+  return(surveyUsers)
+}
+
 processSurvey <- function(survey){
-  survey = str_replace_all(survey, "é", "e")
-  survey = str_replace_all(survey, "É", "E")
-  survey = str_replace_all(survey, "ë", "e")
-  survey = str_replace_all(survey, "è", "e")
-  survey = str_replace_all(survey, "Ã©", "e")
-  survey = str_replace_all(survey, "Ã¨", "e")
-  survey = str_replace_all(survey, "Ã‰", "E")
-  survey = str_replace_all(survey, "Ã«", "e")
+  survey$Name <-processSurveyUsernames(unique(survey$Name))
+  
+  # We add the age category indicator : Youngs = 1, mids = 2, olds = 3
+  survey = survey %>%
+    mutate(Age.category = case_when(Age < 30 ~ 1,
+                               Age >= 30 & Age < 50 ~ 2,
+                               Age >= 50 ~ 3))
+  
   return(survey)
 }
 
 
-survey$Name <-processSurvey(unique(survey$Name))
-logs$User <-processLogs(logs$User)
-user<-"William Beauregard"
+survey<-processSurvey(survey)
+logs<-processLogs(logs)
+user<-"Audrey Auberjonois"
+
+
 
 ui<- dashboardPage(
   dashboardHeader(),
@@ -149,33 +194,33 @@ server = function(input, output) {
   }) 
   
   
-  
-  #C = corr(#skipped, #cheated)
-  skipped_W =length(logs$Time[logs$User == input$user & logs$Type== "Skipped" & logs$weekNum == input$weekNum])
-  cheated_W =length(logs$Time[logs$User == input$user & logs$Type== "Cheated" & logs$weekNum == input$weekNum])
-  autoSkipped_W = length(logs$Time[logs$User == input$user & logs$Type== "autoSkipped" & logs$weekNum == input$weekNum])
-  onTime_W = length(logs$Time[logs$User == input$user & logs$Type== "onTime" & logs$weekNum == input$weekNum])
-  
-  smoked_W = (onTime_W+cheated_W)
-  plan_W = (onTime_W+skipped_W+autoSkipped_W)
-  activity = smoked_W/plan_W
-  
-  actif_W = 0
-  if (activity >0.3) {
-    actif_W = 1
-  }
-  
-  tmp <- data.frame(skipped_W, cheated_W)
-  C_W <- cor(tmp)
-  #V = (#cheated + #skipped)/(#skipped + #onTime + #autoSkipped +1)
-  V_W <- ((skipped + cheated)/(skipped + autoskipped + onTime +1))
-  Engagement_W <- C_W*V_W
-  if (Engagement_W >0.7 & Active_W ==1){
-    Engaged_W = 1
-  }
-  else {
-    Engaged_W =0
-  }
+  # 
+  # #C = corr(#skipped, #cheated)
+  # skipped_W =length(logs$Time[logs$User == input$user & logs$Type== "Skipped" & logs$Week == input$Week])
+  # cheated_W =length(logs$Time[logs$User == input$user & logs$Type== "Cheated" & logs$Week == input$Week])
+  # autoSkipped_W = length(logs$Time[logs$User == input$user & logs$Type== "autoSkipped" & logs$Week == input$Week])
+  # onTime_W = length(logs$Time[logs$User == input$user & logs$Type== "onTime" & logs$Week == input$Week])
+  # 
+  # smoked_W = (onTime_W+cheated_W)
+  # plan_W = (onTime_W+skipped_W+autoSkipped_W)
+  # activity = smoked_W/plan_W
+  # 
+  # actif_W = 0
+  # if (activity >0.3) {
+  #   actif_W = 1
+  # }
+  # 
+  # tmp <- data.frame(skipped_W, cheated_W)
+  # C_W <- cor(tmp)
+  # #V = (#cheated + #skipped)/(#skipped + #onTime + #autoSkipped +1)
+  # V_W <- ((skipped + cheated)/(skipped + autoskipped + onTime +1))
+  # Engagement_W <- C_W*V_W
+  # if (Engagement_W >0.7 & Active_W ==1){
+  #   Engaged_W = 1
+  # }
+  # else {
+  #   Engaged_W =0
+  # }
   
   
 }
