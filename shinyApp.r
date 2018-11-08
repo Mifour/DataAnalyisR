@@ -140,13 +140,42 @@ server = function(input, output) {
   }) 
   
   output$distPlot1 <- renderPlotly({ 
-      df = logs[logs$User == input$user,] 
+      df = logs[logs$User == input$user] 
       df = df[,c("User", 'Time')]
       df = aggregate(df$User, by= list(df$Time), length)
       colnames(df) = c("Day", "nbLog")
       
       plot_ly(x=df$Day, y=df$nbLog, name="test", type="bar")
   }) 
+  
+  
+  
+  #C = corr(#skipped, #cheated)
+  skipped_W =length(logs$Time[logs$User == input$user & logs$Type== "Skipped" & logs$weekNum == input$weekNum])
+  cheated_W =length(logs$Time[logs$User == input$user & logs$Type== "Cheated" & logs$weekNum == input$weekNum])
+  autoSkipped_W = length(logs$Time[logs$User == input$user & logs$Type== "autoSkipped" & logs$weekNum == input$weekNum])
+  onTime_W = length(logs$Time[logs$User == input$user & logs$Type== "onTime" & logs$weekNum == input$weekNum])
+  
+  smoked_W = (onTime_W+cheated_W)
+  plan_W = (onTime_W+skipped_W+autoSkipped_W)
+  activity = smoked_W/plan_W
+  
+  actif_W = 0
+  if (activity >0.3) {
+    actif_W = 1
+  }
+  
+  tmp <- data.frame(skipped_W, cheated_W)
+  C_W <- cor(tmp)
+  #V = (#cheated + #skipped)/(#skipped + #onTime + #autoSkipped +1)
+  V_W <- ((skipped + cheated)/(skipped + autoskipped + onTime +1))
+  Engagement_W <- C_W*V_W
+  if (Engagement_W >0.7 & Active_W ==1){
+    Engaged_W = 1
+  }
+  else {
+    Engaged_W =0
+  }
   
   
 }
