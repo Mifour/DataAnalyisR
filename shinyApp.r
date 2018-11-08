@@ -110,7 +110,7 @@ ui<- dashboardPage(
   body <- dashboardBody(
     fluidRow(
       column(3, align="center",
-        selectInput("user", "User", choices = sort(survey$Name), selected = sort(survey$Name) ),
+        selectInput("user", "User", choices = survey$Name, selected = survey$Name ),
         h3(verbatimTextOutput("user")),br(),
             verbatimTextOutput("userGender"),
             verbatimTextOutput("userAge"), " years old",br(),
