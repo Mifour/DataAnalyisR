@@ -27,15 +27,15 @@ Unaccent <- function(text) {
 }
 
 # Process user names 
-processLogsUsernames <- function(logs){
-  logs = Unaccent(logs)
-  logs = str_replace_all(logs, 'Z', 'e')
-  logs = str_replace(logs, "ftienne", "Etienne")
-  logs = str_replace(logs, "flie", "Elie")
-  logs = str_replace(logs, "In?s", "Ines")
-  logs = str_replace(logs, "fdouard", "Edouard")
+processLogsUsernames <- function(logsUsers){
+  logsUsers = Unaccent(logsUsers)
+  logsUsers = str_replace_all(logsUsers, 'Z', 'e')
+  logsUsers = str_replace(logsUsers, "ftienne", "Etienne")
+  logsUsers = str_replace(logsUsers, "flie", "Elie")
+  logsUsers = str_replace(logsUsers, "In?s", "Ines")
+  logsUsers = str_replace(logsUsers, "fdouard", "Edouard")
   
-  return(logs)
+  return(logsUsers)
 }
 
 processLogs <- function(logs){
@@ -67,16 +67,16 @@ processLogs <- function(logs){
   return(logs)
 }
 
-processSurveyUsernames <- function(survey){
-  survey = str_replace_all(survey, "é", "e")
-  survey = str_replace_all(survey, "É", "E")
-  survey = str_replace_all(survey, "ë", "e")
-  survey = str_replace_all(survey, "è", "e")
-  survey = str_replace_all(survey, "Ã©", "e")
-  survey = str_replace_all(survey, "Ã¨", "e")
-  survey = str_replace_all(survey, "Ã‰", "E")
-  survey = str_replace_all(survey, "Ã«", "e")
-  return(survey)
+processSurveyUsernames <- function(surveyUsers){
+  surveyUsers = str_replace_all(surveyUsers, "é", "e")
+  surveyUsers = str_replace_all(surveyUsers, "É", "E")
+  surveyUsers = str_replace_all(surveyUsers, "ë", "e")
+  surveyUsers = str_replace_all(surveyUsers, "è", "e")
+  surveyUsers = str_replace_all(surveyUsers, "Ã©", "e")
+  surveyUsers = str_replace_all(surveyUsers, "Ã¨", "e")
+  surveyUsers = str_replace_all(surveyUsers, "Ã‰", "E")
+  surveyUsers = str_replace_all(surveyUsers, "Ã«", "e")
+  return(surveyUsers)
 }
 
 processSurvey <- function(survey){
