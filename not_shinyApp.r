@@ -146,7 +146,8 @@ processSurvey <- function(survey){
 
 survey<-processSurvey(survey)
 logs<-processLogs(logs)
+
+# Keep 1 line per user and per week, with all the corresponding KPIs
+logs_weekly = aggregate(logs, list(User=logs$User, Week=logs$Week), mean)[c(1,2,11:ncol(logs))] 
+
 user<-"Audrey Auberjonois"
-
-
-
