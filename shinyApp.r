@@ -157,7 +157,7 @@ ui<- dashboardPage(
   dashboardHeader(),
   dashboardSidebar(
     sidebarMenu(
-      menuItem("Dashboard", tabName = "Single user",
+      menuItem("Single User", tabName = "Single_user",
                icon = icon("dashboard")),
       menuItem("Github", icon = icon("github", class = "fab", lib = "font-awesome"),
                href= "https://github.com/Mifour/DataAnalyisR")
@@ -182,18 +182,18 @@ ui<- dashboardPage(
           "Engaged: ", 1,
           br(),
        
-          h3("Feature usage"), br(),
-          plotOutput("distPlot0")
+           
+          plotOutput("plot0")
         
                
       ),
     column(9,
        
-      plotlyOutput("distPlot1"),
+      plotlyOutput("plot1"),
        
-      plotOutput("distPlot2"),
+      plotOutput("plot2"),
        
-      plotOutput("distPlot3")
+      plotOutput("plot3")
        
       )
     ),    
@@ -220,15 +220,7 @@ server = function(input, output) {
   output$BMI<-reactive(as.character(round(survey$weigh[survey$Name == input$user]/((survey$height[survey$Name == input$user]/100)**2))) )
   
   tmp <-reactive({as.data.frame(logDate = logs$Time[logs$User == input$user & logs$Type== "Cheated"])%>%group_by(logDate) %>% summarise(no_logs = length(logDate)) })
-  #tmp <- tmp %>%group_by(logDate) %>% summarise(no_logs = length(logDate))
-  #output$distPlot1 <- renderPlot(autoplot(ts(tmp)) + labs(title="Cheated over time") )
-
-  #output$distPlot1 <- reactivePlot(function(){
-   # autoplot(ts(tmp)) + labs(title="Cheated over time")
-  #})
   
-  #habits <-reactive(as.character(length(logs$Time[logs$User == input$user & logs$Type== "Behaviour"])/7 )) 
-  #smoked <- reactive(as.data.frame(logDate = logs$Time[(logs$User == input$user & logs$Type== "On time") |(logs$User == input$user & logs$Type== "Cheated" )]) )
   output$saved <- renderText({
     habits <-length(logs$Time[logs$User == input$user & logs$Type== "Behaviour"])/7
     smoked <-data.frame(logDate = logs$Time[(logs$User == input$user & logs$Type== "On time") |(logs$User == input$user & logs$Type== "Cheated" )] )
@@ -241,13 +233,42 @@ server = function(input, output) {
     moneySaved <- saved *3475/20 
   }) 
   
-  output$distPlot1 <- renderPlotly({ 
+  output$plot0 <- renderPlotly({ 
+    values <- data.frame(value = logs$Type[logs$User== input$user])
+    nr.of.appearances <- aggregate(x = values, 
+                                   by = list(unique.values = values$value), 
+                                   FUN = length)
+    nr.of.appearances$value <- 100*nr.of.appearances$value/(sum(nr.of.appearances$value))
+    plot_ly(x=nr.of.appearances$values, y=nr.of.appearances$unique.values, name="Features Ratio", type="bar" , orientation = 'h')
+    #subplot(p0)
+  }) 
+  
+  output$plot1 <- renderPlotly({ 
       df = data.frame(values = logs_weekly$Engagement_w[logs_weekly$User == input$user & logs_weekly$Week>0], 
                       week = logs_weekly$Week[logs_weekly$User == input$user & logs_weekly$Week>0]) 
       
-      plot_ly(x=df$week, y=df$values, name="test", type="bar")
+      p1 <- plot_ly(x=df$week, y=df$values, name="Engagement", type="bar")%>%
+        add_lines(x=df$week, y = 0.7, name= "Engaged ",type = 'scatter', mode = 'lines', color='green') 
+     
   }) 
   
+  output$plot2 <- renderPlotly({ 
+    df = data.frame(efforts = logs_weekly$Effort_w[logs_weekly$User == input$user & logs_weekly$Week>0], 
+                    progress = logs_weekly$Progress_w[logs_weekly$User == input$user & logs_weekly$Week>0],
+                    week = logs_weekly$Week[logs_weekly$User == input$user & logs_weekly$Week>0]) 
+    
+    p1 <- plot_ly(x=df$week, y=df$efforts, name="Effort", type = 'scatter', mode = 'lines', fill = 'tozeroy')%>%
+      add_lines(x=df$week, y = df$progress, name= "progress ",type = 'scatter', mode = 'lines') 
+  }) 
+  
+  output$plot3 <- renderPlotly({ 
+    df = data.frame(values = logs_weekly$Plan_w[logs_weekly$User == input$user & logs_weekly$Week>0], 
+                    week = logs_weekly$Week[logs_weekly$User == input$user & logs_weekly$Week>0]) 
+    habit = logs_weekly$Habit_w[logs_weekly$User == input$user][1]
+    
+    p1 <- plot_ly(x=df$week, y=df$values, name="Plan", type="bar", color = 'yellow')%>%
+      add_lines(x=df$week, y = habit, name= "Habit ",type = 'scatter', mode = 'lines') 
+    }) 
   
   # 
   # #C = corr(#skipped, #cheated)
