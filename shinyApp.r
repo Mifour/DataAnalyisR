@@ -157,7 +157,7 @@ ui<- dashboardPage(
   dashboardHeader(),
   dashboardSidebar(
     sidebarMenu(
-      menuItem("Dashboard", tabName = "dashboard",
+      menuItem("Dashboard", tabName = "Single user",
                icon = icon("dashboard")),
       menuItem("Github", icon = icon("github", class = "fab", lib = "font-awesome"),
                href= "https://github.com/Mifour/DataAnalyisR")
@@ -238,16 +238,14 @@ server = function(input, output) {
     habits <-length(logs$Time[logs$User == input$user & logs$Type== "Behaviour"])/7
     smoked <-data.frame(logDate = logs$Time[(logs$User == input$user & logs$Type== "On time") |(logs$User == input$user & logs$Type== "Cheated" )] )
     saved <-habits*as.numeric(max(as.Date.factor(smoked$logDate))-min(as.Date.factor(smoked$logDate)))-length(smoked)
-    moneySaved <- saved *3.475/20 
+    moneySaved <- saved *3475/20 
   }) 
   
   output$distPlot1 <- renderPlotly({ 
-      df = logs[logs$User == input$user] 
-      df = df[,c("User", 'Time')]
-      df = aggregate(df$User, by= list(df$Time), length)
-      colnames(df) = c("Day", "nbLog")
+      df = data.frame(values = logs_weekly$Engagement_w[logs_weekly$User == input$user & logs_weekly$Week>0], 
+                      week = logs_weekly$Week[logs_weekly$User == input$user & logs_weekly$Week>0]) 
       
-      plot_ly(x=df$Day, y=df$nbLog, name="test", type="bar")
+      plot_ly(x=df$week, y=df$values, name="test", type="bar")
   }) 
   
   
