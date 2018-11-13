@@ -183,7 +183,7 @@ ui<- dashboardPage(
           br(),
        
            
-          plotOutput("plot0")
+          plotlyOutput("plot0")
         
                
       ),
@@ -191,9 +191,9 @@ ui<- dashboardPage(
        
       plotlyOutput("plot1"),
        
-      plotOutput("plot2"),
+      plotlyOutput("plot2"),
        
-      plotOutput("plot3")
+      plotlyOutput("plot3")
        
       )
     ),    
