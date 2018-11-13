@@ -181,8 +181,6 @@ ui<- dashboardPage(
           "Active: ", 1, br(),
           "Engaged: ", 1,
           br(),
-       
-           
           plotlyOutput("plot0")
         
                
@@ -239,8 +237,8 @@ server = function(input, output) {
                                    by = list(unique.values = values$value), 
                                    FUN = length)
     nr.of.appearances$value <- 100*nr.of.appearances$value/(sum(nr.of.appearances$value))
-    plot_ly(x=nr.of.appearances$values, y=nr.of.appearances$unique.values, name="Features Ratio", type="bar" , orientation = 'h')
-    #subplot(p0)
+    plot_ly(x=nr.of.appearances$value, y=nr.of.appearances$unique.values, name="Features Ratio", type="bar" , orientation = 'h')%>%
+    layout( title = "Features ratio (%)")
   }) 
   
   output$plot1 <- renderPlotly({ 
@@ -248,7 +246,8 @@ server = function(input, output) {
                       week = logs_weekly$Week[logs_weekly$User == input$user & logs_weekly$Week>0]) 
       
       p1 <- plot_ly(x=df$week, y=df$values, name="Engagement", type="bar")%>%
-        add_lines(x=df$week, y = 0.7, name= "Engaged ",type = 'scatter', mode = 'lines', color='green') 
+        add_lines(x=df$week, y = 0.7, name= "Engaged ",type = 'scatter', mode = 'lines', color='green') %>%
+      layout( title = "How much engaged was the user")
      
   }) 
   
@@ -258,7 +257,8 @@ server = function(input, output) {
                     week = logs_weekly$Week[logs_weekly$User == input$user & logs_weekly$Week>0]) 
     
     p1 <- plot_ly(x=df$week, y=df$efforts, name="Effort", type = 'scatter', mode = 'lines', fill = 'tozeroy')%>%
-      add_lines(x=df$week, y = df$progress, name= "progress ",type = 'scatter', mode = 'lines') 
+      add_lines(x=df$week, y = df$progress, name= "progress ",type = 'scatter', mode = 'lines')%>%
+    layout( title = "How many efforts did the user")
   }) 
   
   output$plot3 <- renderPlotly({ 
@@ -266,8 +266,9 @@ server = function(input, output) {
                     week = logs_weekly$Week[logs_weekly$User == input$user & logs_weekly$Week>0]) 
     habit = logs_weekly$Habit_w[logs_weekly$User == input$user][1]
     
-    p1 <- plot_ly(x=df$week, y=df$values, name="Plan", type="bar", color = 'yellow')%>%
-      add_lines(x=df$week, y = habit, name= "Habit ",type = 'scatter', mode = 'lines') 
+    p1 <- plot_ly(x=df$week, y=df$values, name="Plan", type="bar")%>%
+      add_lines(x=df$week, y = habit, name= "Habit ",type = 'scatter', mode = 'lines') %>%
+    layout( title = "How did the consuption evolved")
     }) 
   
   # 
