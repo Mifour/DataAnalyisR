@@ -166,19 +166,18 @@ ui<- dashboardPage(
     fluidRow(
       column(3, align="center",
         selectInput("user", "User", choices = unique(logs$User), selected = user ),
-        h3(verbatimTextOutput("user")),br(),
             verbatimTextOutput("userGender"),
-            verbatimTextOutput("userAge"), " years old",br(),
-            "BMI: ", verbatimTextOutput("BMI"), br() ,
+            verbatimTextOutput("userAge"),
+            verbatimTextOutput("BMI"), br() ,
         
-          h3("Savings"), br(),
+          h3("Savings"), 
           "Cigs saved: ", textOutput("saved"), br(),
           "Money saved (L£): ", textOutput("moneySaved"),
           br(),
         
-          h3("Current Activities"), br(),
-          "Active: ", 1, br(),
-          "Engaged: ", 1,
+          h3("Current Activities"), 
+          textOutput("currentActivity"),
+          textOutput("currentEngaged"),
           br(),
           plotlyOutput("plot0")
         
@@ -213,13 +212,15 @@ server = function(input, output) {
     user_vals$habits_d <- mean(logs$Habit_d[(logs$User == input$user)])
     user_vals$smoked <- sum(logs_weekly$Smoked_w[(logs_weekly$User == user)])
     user_vals$saved <- floor(user_vals$habits_d*(max(logs$Day[(logs$User == user)])-6) - user_vals$smoked)
+    user_vals$last_log_weekly <- logs_weekly %>% arrange(desc(logs_weekly$Week)) %>% filter(User == input$user) %>% slice(1)
+    user_vals$current_activity <- user_vals$last_log_weekly$Active_w
+    user_vals$current_engaged <- user_vals$last_log_weekly$Engaged_w
   })
   
   #getting the user info as reactive variable between server and client
-  output$user<-reactive(as.character(input$user))
   output$userGender<-reactive(as.character(survey$Gender[survey$Name == input$user]))
-  output$userAge<-reactive(as.character(survey$Age[survey$Name == input$user]))
-  output$BMI<-reactive(as.character(round(survey$weigh[survey$Name == input$user]/((survey$height[survey$Name == input$user]/100)**2))) )
+  output$userAge<-reactive(as.character(paste(survey$Age[survey$Name == input$user],"years old")))
+  output$BMI<-reactive(as.character(paste("BMI :",round(survey$weigh[survey$Name == input$user]/((survey$height[survey$Name == input$user]/100)**2))) ))
   
   #calcutlating the difference between the cigs consuption before and now (by integral diference)
   output$saved <- renderText({user_vals$saved})
@@ -227,15 +228,25 @@ server = function(input, output) {
   #and the amount of money saved, in libanese pounds
   output$moneySaved <-renderText({user_vals$saved*3475/20}) 
   
+  output$currentActivity <- renderText(paste("Active :",{user_vals$current_activity}))
+  output$currentEngaged <- renderText(paste("Engaged :",{user_vals$current_engaged}))
+  
   #counting the logs type to know how much the different features are used
   output$plot0 <- renderPlotly({ 
     values <- data.frame(value = logs$Type[logs$User== input$user])
     nr.of.appearances <- aggregate(x = values, 
                                    by = list(unique.values = values$value), 
                                    FUN = length)
-    nr.of.appearances$value <- 100*nr.of.appearances$value/(sum(nr.of.appearances$value))
-    plot_ly(x=nr.of.appearances$value, y=nr.of.appearances$unique.values, name="Features Ratio", type="bar" , orientation = 'h')%>%
-    layout( title = "Features ratio (%)")
+    nr.of.appearances$value <- round(100*nr.of.appearances$value/(sum(nr.of.appearances$value)))
+    plot_ly(x=nr.of.appearances$value,
+            y=nr.of.appearances$unique.values,
+            name="Features Ratio",
+            type="bar" ,
+            orientation = 'h',
+            color = nr.of.appearances$unique.values, colors = "Set1",
+            text = nr.of.appearances$value, textposition = 'auto')%>%
+    config(displayModeBar = F)%>%
+    layout( title = "Features ratio (%)", showlegend = FALSE)
   }) 
   
   #rendering the first graph, about the user's engagement over time, per week
@@ -245,10 +256,15 @@ server = function(input, output) {
                       active     = 1-logs_weekly$Active_w[logs_weekly$User == input$user & logs_weekly$Week>0], 
                       week       = logs_weekly$Week[logs_weekly$User == input$user & logs_weekly$Week>0]) 
       
-      p1 <- plot_ly(x=df$week, y=df$engaged, name="Engaged", type = 'scatter', mode = 'lines', fill = 'tozeroy')%>%
+      p1 <- plot_ly(x=df$week, y=df$engaged, name="Engaged", type = 'scatter', mode = 'lines',
+                    line = list(color = '#00b159', width = 2,shape = "hvh"),
+                    fill = 'tozeroy', fillcolor = '#00b159')%>%
         # add_lines(x=df$week, y = df$engaged, name= "Engaged",type = 'scatter', mode = 'lines', color='green') %>%
-        add_lines(x=df$week, y = df$active, name= "non-activity",type = 'scatter', mode = 'lines',fill = 'tozeroy', color='red') %>%
-      layout( title = "How much engaged was the user")
+        add_lines(x=df$week, y = df$active, name= "non-activity",type = 'scatter', mode = 'lines',
+                  line = list(color = '#d11141', width = 2,shape = "hvh"),
+                  fill = 'tozeroy', fillcolor = '#d11141') %>%
+      config(displayModeBar = F)%>%
+      layout( title = "How much engaged was the user", hovermode = 'compare')
      
   }) 
   
@@ -260,7 +276,8 @@ server = function(input, output) {
     
     p1 <- plot_ly(x=df$week, y=df$efforts, name="Effort", type = 'scatter', mode = 'lines', fill = 'tozeroy')%>%
       add_lines(x=df$week, y = df$progress, name= "progress ",type = 'scatter', mode = 'lines')%>%
-    layout( title = "How many efforts did the user")
+    config(displayModeBar = F)%>%
+    layout( title = "How many efforts did the user", hovermode = 'compare')
   }) 
   
   #rendering the first graph, about the user's consuption over time, per week
@@ -270,8 +287,11 @@ server = function(input, output) {
     habit = user_vals$habits_d*7
     
     p1 <- plot_ly(x=df$week, y=df$values, name="Plan", type="bar")%>%
-      add_lines(x=df$week, y = habit, name= "Habit ",type = 'scatter', mode = 'lines') %>%
-    layout( title = "How did the consuption evolved")
+      add_lines(x=df$week, y = habit, name= "Habit ",type = 'scatter', mode = 'lines',
+                    line = list( width = 3, dash='dash')
+                ) %>%
+    config(displayModeBar = F)%>%
+    layout( title = "How did the consuption evolved", hovermode = 'compare')
     }) 
 
   
