@@ -64,8 +64,6 @@ processLogs <- function(logs){
   logs$Week <- floor(logs$Day/7)
   
   # Compute the habit KPI
-  # habits <-length(logs$Time[logs$User == input$user & logs$Type== "Behaviour"])/7
-  # This is a KPI computed in the Absolute sense (not relative to weeks) on a user basis
   logs = sqldf("select logs.*, d.Habit_d, d.Habit_w
               from logs
               left join (
@@ -118,6 +116,7 @@ processLogs <- function(logs){
   return(logs)
 }
 
+#dealing with the encoding format and special characters
 processSurveyUsernames <- function(surveyUsers){
   surveyUsers = str_replace_all(surveyUsers, "é", "e")
   surveyUsers = str_replace_all(surveyUsers, "É", "E")
@@ -149,7 +148,7 @@ logs<-processLogs(logs)
 # Keep 1 line per user and per week, with all the corresponding KPIs
 logs_weekly = aggregate(logs, list(User=logs$User, Week=logs$Week), mean)[c(1,2,11:ncol(logs))] 
 
-user<-"Audrey Auberjonois"
+user<-"Audrey Auberjonois" #initializing the user variable for the beginning
 
 
 
@@ -206,24 +205,21 @@ server = function(input, output) {
   
   # Sort Logs on Users 
   logs<-logs[order(logs$User),]
-  # Prepare Survey data for clustering
-  surveyDummies <- (fastDummies::dummy_cols(survey[,c(-1,-2,-3,-5,-7,-10,-11,-57,-58,-108,-109)], remove_first_dummy = TRUE))[,-1:-158]
   
-  # When input$user changed, updates server output$user
+  #getting the user info as reactive variable between server and client
   output$user<-reactive(as.character(input$user))
-  
-  #output$userName<-renderText({survey$Name[user]})
   output$userGender<-reactive(as.character(survey$Gender[survey$Name == input$user]))
   output$userAge<-reactive(as.character(survey$Age[survey$Name == input$user]))
   output$BMI<-reactive(as.character(round(survey$weigh[survey$Name == input$user]/((survey$height[survey$Name == input$user]/100)**2))) )
   
-  tmp <-reactive({as.data.frame(logDate = logs$Time[logs$User == input$user & logs$Type== "Cheated"])%>%group_by(logDate) %>% summarise(no_logs = length(logDate)) })
-  
+  #calcutlating the difference between the cigs consuption before and now (by integral diference)
   output$saved <- renderText({
     habits <-length(logs$Time[logs$User == input$user & logs$Type== "Behaviour"])/7
     smoked <-data.frame(logDate = logs$Time[(logs$User == input$user & logs$Type== "On time") |(logs$User == input$user & logs$Type== "Cheated" )] )
     saved <-habits*as.numeric(max(as.Date.factor(smoked$logDate))-min(as.Date.factor(smoked$logDate)))-length(smoked) 
   })
+  
+  #and the amount of money saved, in libanese pounds
   output$moneySaved <-renderText({ 
     habits <-length(logs$Time[logs$User == input$user & logs$Type== "Behaviour"])/7
     smoked <-data.frame(logDate = logs$Time[(logs$User == input$user & logs$Type== "On time") |(logs$User == input$user & logs$Type== "Cheated" )] )
@@ -231,6 +227,7 @@ server = function(input, output) {
     moneySaved <- saved *3475/20 
   }) 
   
+  #counting the logs type to know how much the different features are used
   output$plot0 <- renderPlotly({ 
     values <- data.frame(value = logs$Type[logs$User== input$user])
     nr.of.appearances <- aggregate(x = values, 
@@ -241,6 +238,7 @@ server = function(input, output) {
     layout( title = "Features ratio (%)")
   }) 
   
+  #rendering the first graph, about the user's engagement over time, per week
   output$plot1 <- renderPlotly({ 
       df = data.frame(values = logs_weekly$Engagement_w[logs_weekly$User == input$user & logs_weekly$Week>0], 
                       week = logs_weekly$Week[logs_weekly$User == input$user & logs_weekly$Week>0]) 
@@ -251,6 +249,7 @@ server = function(input, output) {
      
   }) 
   
+  #rendering the first graph, about the user's effort over time, per week
   output$plot2 <- renderPlotly({ 
     df = data.frame(efforts = logs_weekly$Effort_w[logs_weekly$User == input$user & logs_weekly$Week>0], 
                     progress = logs_weekly$Progress_w[logs_weekly$User == input$user & logs_weekly$Week>0],
@@ -261,6 +260,7 @@ server = function(input, output) {
     layout( title = "How many efforts did the user")
   }) 
   
+  #rendering the first graph, about the user's consuption over time, per week
   output$plot3 <- renderPlotly({ 
     df = data.frame(values = logs_weekly$Plan_w[logs_weekly$User == input$user & logs_weekly$Week>0], 
                     week = logs_weekly$Week[logs_weekly$User == input$user & logs_weekly$Week>0]) 
@@ -270,35 +270,7 @@ server = function(input, output) {
       add_lines(x=df$week, y = habit, name= "Habit ",type = 'scatter', mode = 'lines') %>%
     layout( title = "How did the consuption evolved")
     }) 
-  
-  # 
-  # #C = corr(#skipped, #cheated)
-  # skipped_W =length(logs$Time[logs$User == input$user & logs$Type== "Skipped" & logs$Week == input$Week])
-  # cheated_W =length(logs$Time[logs$User == input$user & logs$Type== "Cheated" & logs$Week == input$Week])
-  # autoSkipped_W = length(logs$Time[logs$User == input$user & logs$Type== "autoSkipped" & logs$Week == input$Week])
-  # onTime_W = length(logs$Time[logs$User == input$user & logs$Type== "onTime" & logs$Week == input$Week])
-  # 
-  # smoked_W = (onTime_W+cheated_W)
-  # plan_W = (onTime_W+skipped_W+autoSkipped_W)
-  # activity = smoked_W/plan_W
-  # 
-  # actif_W = 0
-  # if (activity >0.3) {
-  #   actif_W = 1
-  # }
-  # 
-  # tmp <- data.frame(skipped_W, cheated_W)
-  # C_W <- cor(tmp)
-  # #V = (#cheated + #skipped)/(#skipped + #onTime + #autoSkipped +1)
-  # V_W <- ((skipped + cheated)/(skipped + autoskipped + onTime +1))
-  # Engagement_W <- C_W*V_W
-  # if (Engagement_W >0.7 & Active_W ==1){
-  #   Engaged_W = 1
-  # }
-  # else {
-  #   Engaged_W =0
-  # }
-  
+
   
 }
 shinyApp(ui, server)
