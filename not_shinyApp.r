@@ -113,7 +113,7 @@ processLogs <- function(logs){
   # Add conditional Active and Engaged KPIs
   logs = sqldf("SELECT *,
               CASE WHEN Activity_w > 0.3 THEN 1 ELSE 0 END AS Active_w,
-              CASE WHEN Activity_w > 0.3 AND Engagement_w < 0.7 THEN 1 ELSE 0 END AS Engaged_w
+              CASE WHEN Activity_w > 0.3 AND Engagement_w < 0.6 THEN 1 ELSE 0 END AS Engaged_w
              FROM logs")
   
   return(logs)
@@ -148,6 +148,8 @@ survey<-processSurvey(survey)
 logs<-processLogs(logs)
 
 # Keep 1 line per user and per week, with all the corresponding KPIs
-logs_weekly = aggregate(logs, list(User=logs$User, Week=logs$Week), mean)[c(1,2,11:ncol(logs))] 
+# logs_weekly = aggregate(logs, list(User=logs$User, Week=logs$Week), mean)[c(1,2,11:ncol(logs))] 
+logs_weekly = logs[c(1,2,11:ncol(logs))] %>% group_by(User=logs$User, Week=logs$Week) %>% summarise_each(funs(mean))
 
 user<-"Audrey Auberjonois"
+

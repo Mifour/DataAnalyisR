@@ -110,7 +110,7 @@ processLogs <- function(logs){
   # Add conditional Active and Engaged KPIs
   logs = sqldf("SELECT *,
               CASE WHEN Activity_w > 0.3 THEN 1 ELSE 0 END AS Active_w,
-              CASE WHEN Activity_w > 0.3 AND Engagement_w < 0.7 THEN 1 ELSE 0 END AS Engaged_w
+              CASE WHEN Activity_w > 0.3 AND Engagement_w < 0.6 THEN 1 ELSE 0 END AS Engaged_w
              FROM logs")
 
   return(logs)
@@ -146,7 +146,7 @@ survey<-processSurvey(survey)
 logs<-processLogs(logs)
 
 # Keep 1 line per user and per week, with all the corresponding KPIs
-logs_weekly = aggregate(logs, list(User=logs$User, Week=logs$Week), mean)[c(1,2,11:ncol(logs))] 
+logs_weekly = logs[c(1,2,11:ncol(logs))] %>% group_by(User=logs$User, Week=logs$Week) %>% summarise_each(funs(mean))
 
 user<-"Audrey Auberjonois" #initializing the user variable for the beginning
 
@@ -165,7 +165,7 @@ ui<- dashboardPage(
   body <- dashboardBody(
     fluidRow(
       column(3, align="center",
-        selectInput("user", "User", choices = unique(logs$User), selected = unique(logs$User) ),
+        selectInput("user", "User", choices = unique(logs$User), selected = user ),
         h3(verbatimTextOutput("user")),br(),
             verbatimTextOutput("userGender"),
             verbatimTextOutput("userAge"), " years old",br(),
@@ -206,6 +206,15 @@ server = function(input, output) {
   # Sort Logs on Users 
   logs<-logs[order(logs$User),]
   
+  user_vals <- reactiveValues()
+  observe({
+    user_vals$user <- input$user
+    # Compute Absolute KPIs for user
+    user_vals$habits_d <- mean(logs$Habit_d[(logs$User == input$user)])
+    user_vals$smoked <- sum(logs_weekly$Smoked_w[(logs_weekly$User == user)])
+    user_vals$saved <- floor(user_vals$habits_d*(max(logs$Day[(logs$User == user)])-6) - user_vals$smoked)
+  })
+  
   #getting the user info as reactive variable between server and client
   output$user<-reactive(as.character(input$user))
   output$userGender<-reactive(as.character(survey$Gender[survey$Name == input$user]))
@@ -213,19 +222,10 @@ server = function(input, output) {
   output$BMI<-reactive(as.character(round(survey$weigh[survey$Name == input$user]/((survey$height[survey$Name == input$user]/100)**2))) )
   
   #calcutlating the difference between the cigs consuption before and now (by integral diference)
-  output$saved <- renderText({
-    habits <-length(logs$Time[logs$User == input$user & logs$Type== "Behaviour"])/7
-    smoked <-data.frame(logDate = logs$Time[(logs$User == input$user & logs$Type== "On time") |(logs$User == input$user & logs$Type== "Cheated" )] )
-    saved <-habits*as.numeric(max(as.Date.factor(smoked$logDate))-min(as.Date.factor(smoked$logDate)))-length(smoked) 
-  })
+  output$saved <- renderText({user_vals$saved})
   
   #and the amount of money saved, in libanese pounds
-  output$moneySaved <-renderText({ 
-    habits <-length(logs$Time[logs$User == input$user & logs$Type== "Behaviour"])/7
-    smoked <-data.frame(logDate = logs$Time[(logs$User == input$user & logs$Type== "On time") |(logs$User == input$user & logs$Type== "Cheated" )] )
-    saved <-habits*as.numeric(max(as.Date.factor(smoked$logDate))-min(as.Date.factor(smoked$logDate)))-length(smoked)
-    moneySaved <- saved *3475/20 
-  }) 
+  output$moneySaved <-renderText({user_vals$saved*3475/20}) 
   
   #counting the logs type to know how much the different features are used
   output$plot0 <- renderPlotly({ 
@@ -240,11 +240,14 @@ server = function(input, output) {
   
   #rendering the first graph, about the user's engagement over time, per week
   output$plot1 <- renderPlotly({ 
-      df = data.frame(values = logs_weekly$Engagement_w[logs_weekly$User == input$user & logs_weekly$Week>0], 
-                      week = logs_weekly$Week[logs_weekly$User == input$user & logs_weekly$Week>0]) 
+      df = data.frame(engagement = logs_weekly$Engagement_w[logs_weekly$User == input$user & logs_weekly$Week>0], 
+                      engaged    = logs_weekly$Engaged_w[logs_weekly$User == input$user & logs_weekly$Week>0], 
+                      active     = 1-logs_weekly$Active_w[logs_weekly$User == input$user & logs_weekly$Week>0], 
+                      week       = logs_weekly$Week[logs_weekly$User == input$user & logs_weekly$Week>0]) 
       
-      p1 <- plot_ly(x=df$week, y=df$values, name="Engagement", type="bar")%>%
-        add_lines(x=df$week, y = 0.7, name= "Engaged ",type = 'scatter', mode = 'lines', color='green') %>%
+      p1 <- plot_ly(x=df$week, y=df$engaged, name="Engaged", type = 'scatter', mode = 'lines', fill = 'tozeroy')%>%
+        # add_lines(x=df$week, y = df$engaged, name= "Engaged",type = 'scatter', mode = 'lines', color='green') %>%
+        add_lines(x=df$week, y = df$active, name= "non-activity",type = 'scatter', mode = 'lines',fill = 'tozeroy', color='red') %>%
       layout( title = "How much engaged was the user")
      
   }) 
@@ -264,7 +267,7 @@ server = function(input, output) {
   output$plot3 <- renderPlotly({ 
     df = data.frame(values = logs_weekly$Plan_w[logs_weekly$User == input$user & logs_weekly$Week>0], 
                     week = logs_weekly$Week[logs_weekly$User == input$user & logs_weekly$Week>0]) 
-    habit = logs_weekly$Habit_w[logs_weekly$User == input$user][1]
+    habit = user_vals$habits_d*7
     
     p1 <- plot_ly(x=df$week, y=df$values, name="Plan", type="bar")%>%
       add_lines(x=df$week, y = habit, name= "Habit ",type = 'scatter', mode = 'lines') %>%
