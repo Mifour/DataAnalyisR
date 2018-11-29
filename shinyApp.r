@@ -158,45 +158,51 @@ ui<- dashboardPage(
     sidebarMenu(
       menuItem("Single User", tabName = "Single_user",
                icon = icon("dashboard")),
+      menuItem("All Users", tabName = "all_users",
+               icon = icon("users", class = "fas", lib = "font-awesome")),
       menuItem("Github", icon = icon("github", class = "fab", lib = "font-awesome"),
                href= "https://github.com/Mifour/DataAnalyisR")
     )
   ),
   body <- dashboardBody(
-    fluidRow(
-      column(3, align="center",
-        selectInput("user", "User", choices = unique(logs$User), selected = user ),
-            verbatimTextOutput("userGender"),
-            verbatimTextOutput("userAge"),
-            verbatimTextOutput("BMI"), br() ,
-        
-          h3("Savings"), 
-          "Cigs saved: ", textOutput("saved"), br(),
-          "Money saved (L£): ", textOutput("moneySaved"),
-          br(),
-        
-          h3("Current Activities"), 
-          textOutput("currentActivity"),
-          textOutput("currentEngaged"),
-          br(),
-          plotlyOutput("plot0")
-        
-               
+    tabItems(
+      tabItem("Single_user", 
+              fluidRow(
+                column(3, align="center",
+                       selectInput("user", "User", choices = unique(logs$User), selected = user ),
+                       verbatimTextOutput("userGender"),
+                       verbatimTextOutput("userAge"),
+                       verbatimTextOutput("BMI"), br() ,
+                       
+                       h3("Savings"), 
+                       "Cigs saved: ", textOutput("saved"), br(),
+                       "Money saved (L£): ", textOutput("moneySaved"),
+                       br(),
+                       
+                       h3("Current Activities"), 
+                       textOutput("currentActivity"),
+                       textOutput("currentEngaged"),
+                       br(),
+                       plotlyOutput("plot0")
+                       
+                       
+                ),
+                column(9,
+                       
+                       plotlyOutput("plot1"),
+                       
+                       plotlyOutput("plot2"),
+                       
+                       plotlyOutput("plot3")
+                )
+                
+              ),    
+              tags$footer(tags$em("Created by Thomas Dufour & Pierre Moreau"))
       ),
-    column(9,
-       
-      plotlyOutput("plot1"),
-       
-      plotlyOutput("plot2"),
-       
-      plotlyOutput("plot3")
-       
-      )
-    ),    
-    tags$footer(tags$em("Created by Thomas Dufour & Pierre Moreau"))
+      tabItem("all_users", "Widgets tab content")
+    )
+   
   )
-  
-  
 )
 
 server = function(input, output) {
