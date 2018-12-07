@@ -189,17 +189,34 @@ ui<- dashboardPage(
                 ),
                 column(9,
                        
-                       plotlyOutput("plot1"),
+                       tabsetPanel(type = "tabs",
+                                   tabPanel("classic",plotlyOutput("plot2")),
+                                   tabPanel("week", "hello, is it me you're looking for ?"),
+                                   tabPanel("engagement", plotlyOutput("plot1")),
+                                   tabPanel("all days", plotlyOutput("plot3"))
+                       )
                        
-                       plotlyOutput("plot2"),
-                       
-                       plotlyOutput("plot3")
                 )
                 
               ),    
               tags$footer(tags$em("Created by Thomas Dufour & Pierre Moreau"))
       ),
-      tabItem("all_users", "Widgets tab content")
+      tabItem("all_users", 
+              fluidRow(
+                column(3, align="center",
+                       "info"
+                       
+                ),
+                column(9,
+                       
+                       tabsetPanel(type = "tabs",
+                                   tabPanel("classic","plotyplotplot"),
+                                   tabPanel("engagement", "wanna banana ?")
+                       )
+                       
+                )
+              )
+      )
     )
    
   )
