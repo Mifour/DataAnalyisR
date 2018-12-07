@@ -322,6 +322,9 @@ server = function(input, output) {
     user_vals$last_log_weekly <- logs_weekly %>% arrange(desc(logs_weekly$Week)) %>% filter(User == input$user) %>% slice(1)
     user_vals$current_activity <- user_vals$last_log_weekly$Active_w
     user_vals$current_engaged <- user_vals$last_log_weekly$Engaged_w
+    user_vals$logs_weekly <- logs_weekly %>% filter(User == input$user)
+    user_vals$logs_daily <- logs_daily %>% filter(User == input$user)
+    user_vals$logs_weekdaily_avg <- logs_weekly %>% filter(User == input$user)
     # user_vals$smoked_computed_in_stat = user_stats$total_smoked[(user_stats$User == user)]
   })
   
@@ -393,8 +396,9 @@ server = function(input, output) {
   
   #rendering the first graph, about the user's consuption over time, per week
   output$plot3 <- renderPlotly({ 
-    df = data.frame(values = logs_weekly$Plan_w[logs_weekly$User == input$user & logs_weekly$Week>0], 
-                    week = logs_weekly$Week[logs_weekly$User == input$user & logs_weekly$Week>0]) 
+    lw = user_vals$logs_weekly %>% filter(Week>0)
+    df = data.frame(values = lw$Plan_w, 
+                    week = lw$Week) 
     habit = user_vals$habits_d*7
     
     p1 <- plot_ly(x=df$week, y=df$values, name="Plan", type="bar")%>%
