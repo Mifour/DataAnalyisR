@@ -296,10 +296,11 @@ ui<- dashboardPage(
     column(9,
        
                        tabsetPanel(type = "tabs",
-                                   tabPanel("classic",plotlyOutput("plot2")),
-                                   tabPanel("week", "hello, is it me you're looking for ?"),
-                                   tabPanel("engagement", plotlyOutput("plot1")),
-                                   tabPanel("all days", plotlyOutput("plot3"))
+                                   tabPanel("classic","your classic daily burger meal"),
+                                   tabPanel("week", "info sur les differents semaines"),
+                                   tabPanel("engagement", "son engagement a lui"),
+                                   tabPanel("all days", "conso sur tous les jours"),
+                                   tabPanel("analysis", plotlyOutput("plot1"), plotlyOutput("plot2"), plotlyOutput("plot3"))
                        )
 
       )
