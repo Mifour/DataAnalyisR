@@ -264,11 +264,15 @@ ui<- dashboardPage(
     sidebarMenu(
       menuItem("Single User", tabName = "Single_user",
                icon = icon("dashboard")),
+      menuItem("All Users", tabName = "all_users",
+               icon = icon("users", class = "fas", lib = "font-awesome")),
       menuItem("Github", icon = icon("github", class = "fab", lib = "font-awesome"),
                href= "https://github.com/Mifour/DataAnalyisR")
     )
   ),
   body <- dashboardBody(
+    tabItems(
+      tabItem("Single_user",
     fluidRow(
       column(3, align="center",
         selectInput("user", "User", choices = unique(logs$User), selected = user ),
@@ -279,7 +283,6 @@ ui<- dashboardPage(
           h3("Savings"), 
           "Cigs saved: ", textOutput("saved"), br(),
           "Money saved (L£): ", textOutput("moneySaved"),
-          # "Old Smoked: ", textOutput("oldSmoked"),"New Smoked: ", textOutput("oldSmoked"),
           br(),
         
           h3("Current Activities"), 
@@ -292,18 +295,36 @@ ui<- dashboardPage(
       ),
     column(9,
        
-      plotlyOutput("plot1"),
-       
-      plotlyOutput("plot2"),
-       
-      plotlyOutput("plot3")
-       
+                       tabsetPanel(type = "tabs",
+                                   tabPanel("classic",plotlyOutput("plot2")),
+                                   tabPanel("week", "hello, is it me you're looking for ?"),
+                                   tabPanel("engagement", plotlyOutput("plot1")),
+                                   tabPanel("all days", plotlyOutput("plot3"))
+                       )
+
       )
     ),    
     tags$footer(tags$em("Created by Thomas Dufour & Pierre Moreau"))
+      ),
+      tabItem("all_users",
+              fluidRow(
+                column(3, align="center",
+                       "info"
+
+                ),
+                column(9,
+
+                       tabsetPanel(type = "tabs",
+                                   tabPanel("classic","plotyplotplot"),
+                                   tabPanel("engagement", "wanna banana ?")
   )
   
-  
+                )
+              )
+      )
+    )
+
+)
 )
 
 server = function(input, output) {
