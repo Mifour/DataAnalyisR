@@ -254,6 +254,21 @@ logs_weekly = select(logs, User, Week, ends_with("_w")) %>% group_by(User=logs$U
 logs_daily = select(logs, User, Week, Day, ends_with("_d")) %>% group_by(User=logs$User, Week=logs$Week, Week=logs$Day) %>% summarise_each(funs(mean))
 logs_weekdaily_avg = select(logs, User, Weekday, ends_with("_d")) %>% group_by(User=logs$User, Weekday=logs$Weekday) %>% summarise_each(funs(mean))
 
+au_logs_weekly_avg = select(logs, Week, ends_with("_w")) %>% group_by(Week=logs$Week) %>%
+        summarise_each(funs(mean))
+au_logs_daily_avg = select(logs, Week, Day, ends_with("_d")) %>% group_by(User=logs$User, Week=logs$Week, Week=logs$Day) %>%
+        summarise_each(funs(mean))
+au_logs_weekdaily_avg = select(logs, Weekday, ends_with("_d")) %>% group_by(User=logs$User, Weekday=logs$Weekday) %>%
+        summarise_each(funs(mean))
+
+au_logs_weekly_sum = select(logs, Week, ends_with("_w")) %>% group_by(Week=logs$Week) %>%
+  summarise_each(funs(sum))
+au_logs_daily_sum = select(logs, Week, Day, ends_with("_d")) %>% group_by(User=logs$User, Week=logs$Week, Week=logs$Day) %>%
+  summarise_each(funs(sum))
+au_logs_weekdaily_sum = select(logs, Weekday, ends_with("_d")) %>% group_by(User=logs$User, Weekday=logs$Weekday) %>%
+  summarise_each(funs(sum))
+
+
 # c(user_stats, all_user_stats) := computeStats(logs, logs_weekly)
 
 user<-"Audrey Auberjonois"
