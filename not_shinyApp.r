@@ -113,7 +113,7 @@ processLogs <- function(logs){
                       SUM(case when Type='Auto skipped' then 1 else 0 end) Autoskipped_d,
                       SUM(case when Type='Friend' then 1 else 0 end) Friend_d,
                       SUM(case when Type='Behaviour' then 1 else 0 end) Behaviour_d
-                    FROM logs GROUP BY User, Day ") 
+                    FROM logs GROUP BY User, Week, Day ") 
   # Left join those weekly KPIs with logs
   logs = merge(x = logs, y = logs.kpis_d, by = c("User", "Week","Day"), all.x = TRUE)
   

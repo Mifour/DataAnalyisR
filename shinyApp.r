@@ -17,23 +17,23 @@ library(sqldf)        # Using SQLite in R to manipulate dataframes :D
 #   t <- function(){ return(list(1, 2)) }
 #   c(a, b) := t()
 
-':=' <- function(lhs, rhs) {
-  frame <- parent.frame()
-  lhs <- as.list(substitute(lhs))
-  if (length(lhs) > 1)
-    lhs <- lhs[-1]
-  if (length(lhs) == 1) {
-    do.call(`=`, list(lhs[[1]], rhs), envir=frame)
-    return(invisible(NULL)) 
-  }
-  if (is.function(rhs) || is(rhs, 'formula'))
-    rhs <- list(rhs)
-  if (length(lhs) > length(rhs))
-    rhs <- c(rhs, rep(list(NULL), length(lhs) - length(rhs)))
-  for (i in 1:length(lhs))
-    do.call(`=`, list(lhs[[i]], rhs[[i]]), envir=frame)
-  return(invisible(NULL)) 
-}
+# ':=' <- function(lhs, rhs) {
+#   frame <- parent.frame()
+#   lhs <- as.list(substitute(lhs))
+#   if (length(lhs) > 1)
+#     lhs <- lhs[-1]
+#   if (length(lhs) == 1) {
+#     do.call(`=`, list(lhs[[1]], rhs), envir=frame)
+#     return(invisible(NULL))
+#   }
+#   if (is.function(rhs) || is(rhs, 'formula'))
+#     rhs <- list(rhs)
+#   if (length(lhs) > length(rhs))
+#     rhs <- c(rhs, rep(list(NULL), length(lhs) - length(rhs)))
+#   for (i in 1:length(lhs))
+#     do.call(`=`, list(lhs[[i]], rhs[[i]]), envir=frame)
+#   return(invisible(NULL))
+# }
 
 
 survey = read.xlsx("surveydataece.xlsx", sheetIndex=1)
@@ -109,7 +109,7 @@ processLogs <- function(logs){
                       SUM(case when Type='Auto skipped' then 1 else 0 end) Autoskipped_d,
                       SUM(case when Type='Friend' then 1 else 0 end) Friend_d,
                       SUM(case when Type='Behaviour' then 1 else 0 end) Behaviour_d
-                      FROM logs GROUP BY User, Day ") 
+                      FROM logs GROUP BY User, Week, Day ") 
   # Left join those weekly KPIs with logs
   logs = merge(x = logs, y = logs.kpis_d, by = c("User", "Week","Day"), all.x = TRUE)
   
@@ -189,6 +189,7 @@ processLogs <- function(logs){
   return(logs)
 }
 
+#dealing with the encoding format and special characters
 processSurveyUsernames <- function(surveyUsers){
   surveyUsers = str_replace_all(surveyUsers, "é", "e")
   surveyUsers = str_replace_all(surveyUsers, "É", "E")
@@ -213,35 +214,35 @@ processSurvey <- function(survey){
   return(survey)
 }
 
-computeStats <- function(logs, logs_weekly){
-  
-  user_max_day <- logs %>% group_by(User=logs$User) %>% summarize(max_day = max(Day))
-  
-  user_stats= logs_weekly %>% group_by(User) %>% summarise(
-    max_week = max(Week),
-    habits_d = mean(Behaviour_w, na.rm = T)/7.,
-    habits_w = mean(Behaviour_w, na.rm = T),
-    total_smoked = sum(Smoked_w),
-    avg_smoked = mean(Smoked_w, na.rm = T),
-    total_consumption = sum(Consumption_w),
-    avg_consumption = mean(Consumption_w, na.rm = T),
-    avg_engagement2_w = mean(Engagement2_w, na.rm = T)
-  )
-  
-  user_stats = merge(x = user_stats, y = user_max_day, by = "User", all.x = TRUE)
-  user_stats$total_saved = floor(user_stats$habits_d*(user_stats$max_day-6) - user_stats$total_smoked)
-  user_stats$money_saved = user_stats$total_saved*3475/20
-  
-  all_user_stats = user_stats %>% summarize(
-    total_smoked = sum(total_smoked),
-    avg_smoked = mean(avg_smoked, na.rm = T),
-    total_consumption = sum(total_consumption),
-    avg_consumption = mean(avg_consumption, na.rm = T),
-    avg_engagement2_w = mean(avg_engagement2_w, na.rm = T)
-  )
-  
-  return(list(user_stats, all_user_stats))
-}
+# computeStats <- function(logs, logs_weekly){
+#   
+#   user_max_day <- logs %>% group_by(User=logs$User) %>% summarize(max_day = max(Day))
+#   
+#   user_stats= logs_weekly %>% group_by(User) %>% summarise(
+#     max_week = max(Week),
+#     habits_d = mean(Behaviour_w, na.rm = T)/7.,
+#     habits_w = mean(Behaviour_w, na.rm = T),
+#     total_smoked = sum(Smoked_w),
+#     avg_smoked = mean(Smoked_w, na.rm = T),
+#     total_consumption = sum(Consumption_w),
+#     avg_consumption = mean(Consumption_w, na.rm = T),
+#     avg_engagement2_w = mean(Engagement2_w, na.rm = T)
+#   )
+#   
+#   user_stats = merge(x = user_stats, y = user_max_day, by = "User", all.x = TRUE)
+#   user_stats$total_saved = floor(user_stats$habits_d*(user_stats$max_day-6) - user_stats$total_smoked)
+#   user_stats$money_saved = user_stats$total_saved*3475/20
+#   
+#   all_user_stats = user_stats %>% summarize(
+#     total_smoked = sum(total_smoked),
+#     avg_smoked = mean(avg_smoked, na.rm = T),
+#     total_consumption = sum(total_consumption),
+#     avg_consumption = mean(avg_consumption, na.rm = T),
+#     avg_engagement2_w = mean(avg_engagement2_w, na.rm = T)
+#   )
+#   
+#   return(list(user_stats, all_user_stats))
+# }
 
 
 survey<-processSurvey(survey)
@@ -253,8 +254,9 @@ logs_weekly = select(logs, User, Week, ends_with("_w")) %>% group_by(User=logs$U
 logs_daily = select(logs, User, Week, Day, ends_with("_d")) %>% group_by(User=logs$User, Week=logs$Week, Week=logs$Day) %>% summarise_each(funs(mean))
 logs_weekdaily_avg = select(logs, User, Weekday, ends_with("_d")) %>% group_by(User=logs$User, Weekday=logs$Weekday) %>% summarise_each(funs(mean))
 
-c(user_stats, all_user_stats) := computeStats(logs, logs_weekly)
+# c(user_stats, all_user_stats) := computeStats(logs, logs_weekly)
 
+user<-"Audrey Auberjonois"
 
 ui<- dashboardPage(
   dashboardHeader(),
@@ -277,7 +279,7 @@ ui<- dashboardPage(
           h3("Savings"), 
           "Cigs saved: ", textOutput("saved"), br(),
           "Money saved (L£): ", textOutput("moneySaved"),
-          "Old Smoked: ", textOutput("oldSmoked"),"New Smoked: ", textOutput("oldSmoked"),
+          # "Old Smoked: ", textOutput("oldSmoked"),"New Smoked: ", textOutput("oldSmoked"),
           br(),
         
           h3("Current Activities"), 
@@ -320,7 +322,7 @@ server = function(input, output) {
     user_vals$last_log_weekly <- logs_weekly %>% arrange(desc(logs_weekly$Week)) %>% filter(User == input$user) %>% slice(1)
     user_vals$current_activity <- user_vals$last_log_weekly$Active_w
     user_vals$current_engaged <- user_vals$last_log_weekly$Engaged_w
-    user_vals$smoked_computed_in_stat = user_stats$total_smoked[(user_stats$User == user)]
+    # user_vals$smoked_computed_in_stat = user_stats$total_smoked[(user_stats$User == user)]
   })
   
   #getting the user info as reactive variable between server and client
@@ -334,8 +336,8 @@ server = function(input, output) {
   #and the amount of money saved, in libanese pounds
   output$moneySaved <-renderText({user_vals$saved*3475/20}) 
   
-  output$oldSmoked <-renderText({user_vals$smoked}) 
-  output$newSmoked <-renderText({user_vals$smoked_computed_in_stat}) 
+  # output$oldSmoked <-renderText({user_vals$smoked}) 
+  # output$newSmoked <-renderText({user_vals$smoked_computed_in_stat}) 
   
   output$currentActivity <- renderText(paste("Active :",{user_vals$current_activity}))
   output$currentEngaged <- renderText(paste("Engaged :",{user_vals$current_engaged}))
