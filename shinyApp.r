@@ -251,19 +251,19 @@ logs<-processLogs(logs)
 # Keep 1 line per user and per week, with all the corresponding KPIs
 # logs_weekly = logs[c(1,2,11:ncol(logs))] %>% group_by(User=logs$User, Week=logs$Week) %>% summarise_each(funs(mean))
 logs_weekly = select(logs, User, Week, ends_with("_w")) %>% group_by(User=logs$User, Week=logs$Week) %>% summarise_each(funs(mean))
-logs_daily = select(logs, User, Week, Day, ends_with("_d")) %>% group_by(User=logs$User, Week=logs$Week, Week=logs$Day) %>% summarise_each(funs(mean))
+logs_daily = select(logs, User, Week, Day, ends_with("_d")) %>% group_by(User=logs$User, Week=logs$Week, Day=logs$Day) %>% summarise_each(funs(mean))
 logs_weekdaily_avg = select(logs, User, Weekday, ends_with("_d")) %>% group_by(User=logs$User, Weekday=logs$Weekday) %>% summarise_each(funs(mean))
 
 au_logs_weekly_avg = select(logs, Week, ends_with("_w")) %>% group_by(Week=logs$Week) %>%
         summarise_each(funs(mean))
-au_logs_daily_avg = select(logs, Week, Day, ends_with("_d")) %>% group_by(User=logs$User, Week=logs$Week, Week=logs$Day) %>%
+au_logs_daily_avg = select(logs, Week, Day, ends_with("_d")) %>% group_by(User=logs$User, Week=logs$Week, Day=logs$Day) %>%
         summarise_each(funs(mean))
 au_logs_weekdaily_avg = select(logs, Weekday, ends_with("_d")) %>% group_by(User=logs$User, Weekday=logs$Weekday) %>%
         summarise_each(funs(mean))
 
 au_logs_weekly_sum = select(logs, Week, ends_with("_w")) %>% group_by(Week=logs$Week) %>%
   summarise_each(funs(sum))
-au_logs_daily_sum = select(logs, Week, Day, ends_with("_d")) %>% group_by(User=logs$User, Week=logs$Week, Week=logs$Day) %>%
+au_logs_daily_sum = select(logs, Week, Day, ends_with("_d")) %>% group_by(User=logs$User, Week=logs$Week, Day=logs$Day) %>%
   summarise_each(funs(sum))
 au_logs_weekdaily_sum = select(logs, Weekday, ends_with("_d")) %>% group_by(User=logs$User, Weekday=logs$Weekday) %>%
   summarise_each(funs(sum))
@@ -303,19 +303,20 @@ ui<- dashboardPage(
           h3("Current Activities"), 
           textOutput("currentActivity"),
           textOutput("currentEngaged"),
-          br(),
-          plotlyOutput("plot0")
+          br()
+          
         
                
       ),
     column(9,
        
                        tabsetPanel(type = "tabs",
-                                   tabPanel("classic","your classic daily burger meal"),
-                                   tabPanel("week", "info sur les differents semaines"),
-                                   tabPanel("engagement", "son engagement a lui"),
-                                   tabPanel("all days", "conso sur tous les jours"),
-                                   tabPanel("analysis", plotlyOutput("plot1"), plotlyOutput("plot2"), plotlyOutput("plot3"))
+                                   tabPanel("classic",plotlyOutput('plotSmokwd'), plotlyOutput('plotconso7d'),plotlyOutput('plotProgd')),
+                                   tabPanel("week", plotlyOutput("plotAvgDConsoW"), plotlyOutput("plotUsagew")),
+                                   tabPanel("engagement", plotlyOutput("plotEng2D"), plotlyOutput("plotEng2W")),
+                                   tabPanel("all days",plotlyOutput('plotConsod'), plotlyOutput("plot0") ),
+                                   tabPanel("analysis", plotlyOutput("plot1"), plotlyOutput("plot2"), plotlyOutput("plot3")
+                                    )
                        )
 
       )
@@ -399,6 +400,108 @@ server = function(input, output) {
     config(displayModeBar = F)%>%
     layout( title = "Features ratio (%)", showlegend = FALSE)
   }) 
+  
+  #render the engament daily
+  output$plotEng2D <- renderPlotly({
+    df = data.frame(eng = user_vals$logs_daily$Engagement2_d,
+                    day = user_vals$logs_daily$Day)
+    p1 <- plot_ly(x= df$day, y = df$eng, name="engagement", type = 'scatter', mode="lines",
+                  line = list(color = '#00b159', width = 2,shape = "hvh"),
+                  fill = 'tozeroy', fillcolor = '#00b159')%>%
+    config(displayModeBar = F)%>%
+      layout( title = "User's engagement per day", hovermode = 'compare')
+    
+    
+  })
+  
+  #render the engament weekly
+  output$plotEng2W <- renderPlotly({
+    df = data.frame(eng = user_vals$logs_weekly$Engagement2_w,
+                    week = user_vals$logs_weekly$Week)
+    p1 <- plot_ly(x= df$week, y = df$eng, name="engagement", type = 'scatter', mode="lines",
+                  line = list(color = '#00b159', width = 2,shape = "hvh"))%>%
+      add_lines(x=df$week, y = 0.4, name= "Thereshold",type = 'scatter', mode = 'lines',
+                line = list(color = '#d11141', width = 2,shape = "hvh", dash= 'dash'))%>%
+      config(displayModeBar = F)%>%
+      layout( title = "User's engagement during the weeks", hovermode = 'compare')
+  })
+  
+  #render the comsupton over week day
+  output$plotSmokwd <- renderPlotly({
+    # df = data.frame(smk = user_vals$logs_weekdaily_avg$Consumption_d,
+    #                 weekday = user_vals$logs_weekdaily_avg$Weekday)
+    smk <- user_vals$logs_weekdaily_avg$Consumption_d
+    weekday <- user_vals$logs_weekdaily_avg$Weekday
+    df <- data.frame(smk, weekday)
+    df$weekday <- factor(df$weekday, levels= c("lundi", "mardi", 
+                                             "mercredi", "jeudi", "vendredi", "samedi", "dimanche"))
+    
+    df = df[order(df$weekday), ]
+    
+    p1 <- plot_ly(x= c("lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche"), 
+                  y = df$smk, name="weekday", type = 'scatter', mode="bar",
+                  line = list(color = '#ffa900', width = 2,shape = "hvh"))%>%
+      config(displayModeBar = F)%>%
+      layout( title = "smoke repartition over the weekdays", hovermode = 'compare')
+
+    # p <- plot_ly(df, labels = df$weekday, values = df$smk, type = 'pie') %>%
+    #   config(displayModeBar = F)%>%
+    #   layout(title = 'smoke repartition over the weekdays',
+    #          xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
+    #          yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE))
+    # 
+    
+  })
+  
+  output$plotconso7d <- renderPlotly({
+    df = data.frame(values= tail(user_vals$logs_daily$Consumption_d, n=7))
+    
+    p1 <- plot_ly(x= c(-7, -6, -5, -4, -3, -2, -1), 
+                  y = df$values, name="consumption", type = 'scatter', mode="lines",
+                  line = list(color = '#ec0082', width = 2,shape = "hvh"))%>%
+      config(displayModeBar = F)%>%
+      layout( title = "Consumption evolution over the last 7 days", hovermode = 'compare')
+    })
+  
+  output$plotProgd <- renderPlotly({
+    df = data.frame(values = user_vals$logs_weekly$Progress_w)
+    p1 <- plot_ly(x= array(1:length(df$values)), 
+                  y = df$values, name="progress", type = 'scatter', mode="lines",
+                  line = list(color = '#589427', width = 2,shape = "hvh"))%>%
+      config(displayModeBar = F)%>%
+      layout( title = "Progress over time", hovermode = 'compare')
+  })
+  
+  output$plotAvgDConsoW <- renderPlotly({
+    df = data.frame(values =  user_vals$logs_weekly$Consumption_w/7)
+    p1 <- plot_ly(x= array(1:length(df$values)), 
+                  y = df$values, name="progress", type = 'scatter', mode="lines",
+                  line = list(color = '#00b159', width = 2,shape = "hvh"),
+                  fill = 'tozeroy', fillcolor = '#00b159')%>%
+      config(displayModeBar = F)%>%
+      layout( title = "Avg daily consumption over weeks", hovermode = 'compare')
+  })
+  
+  output$plotUsagew <- renderPlotly({
+    df = data.frame(ontime =user_vals$logs_weekly$Ontime_w,
+                    cheated = user_vals$logs_weekly$Cheated_w,
+                    friend = user_vals$logs_weekly$Friend_w)
+    
+    p1 <- plot_ly(x= array(1:length(df$ontime)), y=df$ontime, name="OnTime", type = 'scatter', mode = 'lines', fill = 'tozeroy')%>%
+      add_lines(x= array(1:length(df$cheated)), y=df$cheated, name="Cheated", type = 'scatter', mode = 'lines', fill = 'tozeroy')%>%
+      add_lines(x= array(1:length(df$friend)), y=df$friend, name="Friend", type = 'scatter', mode = 'lines', fill = 'tozeroy')%>%
+      config(displayModeBar = F)%>%
+      layout( title = "What is ligthing up the lighter", hovermode = 'compare')
+  })
+  
+  output$plotConsod <- renderPlotly({
+    df = data.frame(values = user_vals$logs_daily$Consumption_d )
+    p1 <- plot_ly(x= array(1:length(df$values)), 
+                  y = df$values, name="consumption", type = 'scatter', mode="lines",
+                  line = list(color = '#589427', width = 2,shape = "hvh"))%>%
+      config(displayModeBar = F)%>%
+      layout( title = "Consumption over time", hovermode = 'compare')
+  })
   
   #rendering the first graph, about the user's engagement over time, per week
   output$plot1 <- renderPlotly({ 
