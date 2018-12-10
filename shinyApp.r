@@ -446,14 +446,15 @@ server = function(input, output) {
     # weekday <- user_vals$logs_weekdaily_avg$Weekday
     # df <- data.frame(smk, weekday)
     
-    df = aggregate(logs_weekdaily_avg$Smoked_d ~ logs_weekdaily_avg$Weekday, user_vals$logs_weekdaily_avg, mean)
+    # df = aggregate(logs_weekdaily_avg$Smoked_d ~ logs_weekdaily_avg$Weekday, user_vals$logs_weekdaily_avg, mean)
+    df = aggregate(Consumption_d ~ Weekday, logs[logs$User==input$user,], mean)
     
-    # df$weekday <- factor(df$weekday, levels= c("lundi", "mardi", 
+    # df$Weekday <- factor(df$Weekday, levels= c("lundi", "mardi",
     #                                          "mercredi", "jeudi", "vendredi", "samedi", "dimanche"))
     # 
     # tmp = sort.list(df, method = c("lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche"))
     # 
-    # df = df[order(df$weekday), ]
+    # df = df[order(df$Weekday), ]
     # 
     # p1 <- plot_ly(x= c("lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche"),
     #               y = tmp, name="weekday", type = 'scatter', mode="bar",
@@ -469,7 +470,7 @@ server = function(input, output) {
     #          yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE))
     # 
     
-    p1 <- plot_ly(x=df$Weekday, y=df$smk, name="Conso", type = 'scatter', mode = 'lines', fill = 'tozeroy')%>%
+    p1 <- plot_ly(x=df$Weekday, y=df$Consumption_d, name="Conso", type = 'scatter', mode = 'lines', fill = 'tozeroy')%>%
       config(displayModeBar = F)%>%
       layout( title = "smoke repartition over the weekdays", hovermode = 'compare')
     
